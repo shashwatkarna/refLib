@@ -2,12 +2,19 @@ import os
 import re
 import PyPDF2
 from docx import Document
-from docx.shared import Inches, Pt
+from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_SECTION
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 import shutil
+
+def hex_to_rgb(hex_color):
+    """Convert hex color string to RGB tuple."""
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) == 3:
+        hex_color = ''.join([c*2 for c in hex_color])
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 def extract_text(filepath):
     """Extract text from PDF or DOCX file."""
@@ -98,15 +105,30 @@ def set_number_of_columns(section, cols, space_twips):
     cols_element.set(qn('w:num'), str(cols))
     cols_element.set(qn('w:space'), str(space_twips))
 
-def format_document(parsed_data, output_path, citation_style="APA"):
-    """Create a formatted docx document based on parsed data and two-column academic guidelines."""
+def format_document(parsed_data, output_path, options=None):
+    """Create a formatted docx document based on parsed data and academic guidelines."""
+    if options is None:
+        options = {}
+    
+    citation_style = options.get('citation_style', 'APA')
+    num_columns = int(options.get('columns', 2))
+    
+    h_font_name = options.get('heading_font', 'Times New Roman')
+    h_font_size = int(options.get('heading_size', 20))
+    h_color_rgb = hex_to_rgb(options.get('heading_color', '#000000'))
+    
+    c_font_name = options.get('content_font', 'Times New Roman')
+    c_font_size = int(options.get('content_size', 10))
+    c_color_rgb = hex_to_rgb(options.get('content_color', '#000000'))
+
     doc = Document()
     
     # Configure default style
     style = doc.styles['Normal']
     font = style.font
-    font.name = 'Times New Roman'
-    font.size = Pt(10)
+    font.name = c_font_name
+    font.size = Pt(c_font_size)
+    font.color.rgb = RGBColor(*c_color_rgb)
     style.paragraph_format.line_spacing = 1.0  # Single-spaced (typical in IEEE/IJRTI)
     
     # 0.6-inch margins for all sections
@@ -123,7 +145,9 @@ def format_document(parsed_data, output_path, citation_style="APA"):
         title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         title_run = title_p.add_run(parsed_data['title'])
         title_run.bold = True
-        title_run.font.size = Pt(20)
+        title_run.font.name = h_font_name
+        title_run.font.size = Pt(h_font_size)
+        title_run.font.color.rgb = RGBColor(*h_color_rgb)
         
     # Authors
     for author in parsed_data['authors']:
@@ -166,8 +190,8 @@ def format_document(parsed_data, output_path, citation_style="APA"):
     new_section.bottom_margin = Inches(0.6)
     new_section.left_margin = Inches(0.6)
     new_section.right_margin = Inches(0.6)
-    # 2 columns with 0.3 inch spacing (432 twips)
-    set_number_of_columns(new_section, 2, 432)
+    # columns with 0.3 inch spacing (432 twips)
+    set_number_of_columns(new_section, num_columns, 432)
         
     # Body
     for para in parsed_data['body']:
@@ -178,7 +202,9 @@ def format_document(parsed_data, output_path, citation_style="APA"):
             h_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             h_run = h_p.add_run(para)
             h_run.bold = True
-            h_run.font.size = Pt(10)
+            h_run.font.name = h_font_name
+            h_run.font.size = Pt(int(h_font_size * 0.6)) # Smaller sub-heading
+            h_run.font.color.rgb = RGBColor(*h_color_rgb)
         else:
             # Regular paragraph
             p = doc.add_paragraph(para)
@@ -203,8 +229,21 @@ def format_document(parsed_data, output_path, citation_style="APA"):
     except Exception as e:
         return False, str(e)
 
-def in_place_format_docx(input_path, output_path, citation_style="APA"):
+def in_place_format_docx(input_path, output_path, options=None):
     """Format docx in place to retain tables, images, and inline formatting"""
+    if options is None:
+        options = {}
+        
+    num_columns = int(options.get('columns', 2))
+    
+    h_font_name = options.get('heading_font', 'Times New Roman')
+    h_font_size = int(options.get('heading_size', 20))
+    h_color_rgb = hex_to_rgb(options.get('heading_color', '#000000'))
+    
+    c_font_name = options.get('content_font', 'Times New Roman')
+    c_font_size = int(options.get('content_size', 10))
+    c_color_rgb = hex_to_rgb(options.get('content_color', '#000000'))
+
     try:
         shutil.copy(input_path, output_path)
         doc = Document(output_path)
@@ -214,8 +253,9 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
     # Configure default style
     style = doc.styles['Normal']
     font = style.font
-    font.name = 'Times New Roman'
-    font.size = Pt(10)
+    font.name = c_font_name
+    font.size = Pt(c_font_size)
+    font.color.rgb = RGBColor(*c_color_rgb)
     if hasattr(style.paragraph_format, 'line_spacing'):
         style.paragraph_format.line_spacing = 1.0
 
@@ -245,11 +285,15 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         if i == 0:
             for run in p.runs:
-                run.font.size = Pt(20)
+                run.font.name = h_font_name
+                run.font.size = Pt(h_font_size)
+                run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
         else:
             for run in p.runs:
-                run.font.size = Pt(11)
+                run.font.name = c_font_name
+                run.font.size = Pt(c_font_size + 1)
+                run.font.color.rgb = RGBColor(*c_color_rgb)
                 
     # Insert Section break at abstract_idx - 1
     last_header_para = doc.paragraphs[abstract_idx - 1]
@@ -262,7 +306,7 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
     sectPr.append(type_el)
     
     cols = OxmlElement('w:cols')
-    cols.set(qn('w:num'), '1')
+    cols.set(qn('w:num'), str(num_columns))
     cols.set(qn('w:space'), '432')
     sectPr.append(cols)
     
@@ -282,14 +326,14 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
     doc.sections[-1].left_margin = Inches(0.6)
     doc.sections[-1].right_margin = Inches(0.6)
     
-    doc_sectPr = doc._document_part._element.body.sectPr
+    doc_sectPr = doc.sections[-1]._sectPr
     doc_cols = doc_sectPr.xpath('./w:cols')
     if not doc_cols:
         doc_cols = OxmlElement('w:cols')
         doc_sectPr.append(doc_cols)
     else:
         doc_cols = doc_cols[0]
-    doc_cols.set(qn('w:num'), '2')
+    doc_cols.set(qn('w:num'), str(num_columns))
     doc_cols.set(qn('w:space'), '432')
     
     # Format the rest of the body (Abstract, Keywords, text)
@@ -304,6 +348,9 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
         if len(words) < 12 and not text.endswith('.'):
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in p.runs:
+                run.font.name = h_font_name
+                run.font.size = Pt(int(h_font_size * 0.6))
+                run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
         else:
             # Regular paragraph
@@ -380,5 +427,79 @@ def in_place_format_docx(input_path, output_path, citation_style="APA"):
     try:
         doc.save(output_path)
         return True, "Formatting successful."
+    except Exception as e:
+        return False, str(e)
+
+def mock_ai_refinement(text, instruction):
+    """Simulate AI text refinement based on instructions."""
+    inst = instruction.lower()
+    
+    # 1. Formalize / Academic
+    if "formal" in inst or "academic" in inst or "formalize" in inst:
+        academic_replacements = {
+            "get": "obtain",
+            "don't": "do not",
+            "it's": "it is",
+            "can't": "cannot",
+            "a lot of": "numerous",
+            "show": "demonstrate",
+            "find out": "determine",
+            "good": "advantageous",
+            "bad": "detrimental"
+        }
+        refined = text
+        for old, new in academic_replacements.items():
+            refined = refined.replace(old, new).replace(old.capitalize(), new.capitalize())
+        return refined
+        
+    # 2. Shorten
+    elif "shorten" in inst or "concise" in inst:
+        points = text.split(". ")
+        if len(points) > 1:
+            return f"{points[0]}. (Summary: {points[-1]})"
+        return f"{text[:len(text)//2]}..."
+        
+    # 3. Explain / Simple
+    elif "explain" in inst or "simpler" in inst:
+        return f"[Simpler Explanation]: Essentially, this means that {text.lower() if text[0].islower() else text[0].lower() + text[1:]}"
+        
+    # 4. Grammar
+    elif "grammar" in inst or "punctuation" in inst:
+        # Simulated grammar fix (e.g. capitalize first letter, add period)
+        refined = text.strip()
+        if refined and not refined[0].isupper():
+            refined = refined[0].upper() + refined[1:]
+        if refined and not refined.endswith("."):
+            refined += "."
+        return refined
+        
+    # 5. Default/Custom
+    return f"[AI-Edited]: {text}"
+
+def refine_docx(file_path, original_text, instruction):
+    """Find text in docx and replace it with refined version."""
+    try:
+        doc = Document(file_path)
+        new_text = mock_ai_refinement(original_text, instruction)
+        found = False
+        
+        # Search and replace logic
+        for para in doc.paragraphs:
+            if original_text in para.text:
+                # Replace in runs to preserve some formatting if possible
+                # Simple full paragraph replace for now to ensure consistency
+                para.text = para.text.replace(original_text, new_text)
+                found = True
+                
+        if not found:
+            # Try fuzzy matching if exact fails
+            for para in doc.paragraphs:
+                if len(para.text) > 10 and original_text[:10] in para.text:
+                    para.text = para.text.replace(para.text, new_text)
+                    found = True
+                    break
+        
+        doc.save(file_path)
+        return True, new_text
     except Exception as e:
         return False, str(e)
