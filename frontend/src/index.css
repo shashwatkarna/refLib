@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap');
+
+:root {
+  --primary: #52c41a; 
+  --bg: #d0bfff; /* Striking plain cyber-purple */
+  --text: #111; 
+  --accent-blue: #1677ff;
+  --accent-red: #ff4d4f;
+  --border-width: 3px; 
+  --border-radius: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Nunito', 'Comic Sans MS', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 50px;
+}
+
+/* Global Layout Overrides */
+.ant-layout {
+  min-height: 100vh;
+  background-color: transparent !important;
+}
+
+.ant-layout-header {
+  background: transparent !important;
+  padding: 20px 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  z-index: 10;
+  margin-bottom: 20px;
+  height: auto !important;
+  line-height: normal !important;
+}
+
+/* Custom Neo-Brutalist Card */
+.custom-card {
+  border: var(--border-width) solid var(--text) !important;
+  border-radius: var(--border-radius) !important;
+  box-shadow: 8px 8px 0px 0px var(--text) !important;
+  background-color: white !important;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.custom-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 10px 10px 0px 0px var(--text) !important;
+}
+
+/* Neo-Brutalist Form Controls (Inputs, Selects, Uploads) */
+.ant-select-selector, .ant-input, .ant-picker {
+  border: var(--border-width) solid var(--text) !important;
+  border-radius: 8px !important;
+  box-shadow: 3px 3px 0px var(--text) !important;
+  height: 40px !important;
+  display: flex;
+  align-items: center;
+}
+
+.ant-select-focused .ant-select-selector, .ant-input:focus {
+  box-shadow: 0px 0px 0px var(--text) !important;
+  transform: translate(3px, 3px);
+  transition: all 0.1s;
+}
+
+.ant-upload-drag {
+  border: var(--border-width) dashed var(--text) !important;
+  border-radius: var(--border-radius) !important;
+  background-color: #fbfcff !important;
+  box-shadow: none !important;
+}
+.ant-upload-drag:hover {
+  background-color: #e6f7ff !important;
+}
+
+/* Neo-Brutalist Buttons */
+.ant-btn {
+  border: var(--border-width) solid var(--text) !important;
+  border-radius: 8px !important;
+  box-shadow: 4px 4px 0px 0px var(--text) !important;
+  font-weight: 800 !important;
+  transition: all 0.1s !important;
+  height: auto !important;
+  padding: 10px 20px !important;
+}
+
+.ant-btn:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 6px 6px 0px 0px var(--text) !important;
+}
+
+.ant-btn:active, .ant-btn-loading {
+  transform: translate(4px, 4px) !important;
+  box-shadow: 0px 0px 0px 0px var(--text) !important;
+}
+
+.ant-btn-primary {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+.ant-btn-default {
+  background-color: white !important;
+}
+
+/* Fix Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 800 !important;
+  color: var(--text) !important;
+}
