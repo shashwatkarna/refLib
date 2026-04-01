@@ -1,0 +1,26 @@
+# Node / React
+node_modules/
+npm-debug.log*
+frontend/dist/
+frontend/build/
+.env*
+!.env.example
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*.so
+.Python
+backend/venv/
+backend/.venv/
+.venv/
+venv/
+env/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
