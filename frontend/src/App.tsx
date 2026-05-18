@@ -54,7 +54,7 @@ function App() {
       </ConfigProvider>
 
       {/* Bottom Left Utility Container */}
-      <div style={{ position: 'fixed', bottom: '20px', left: '20px', display: 'flex', gap: '12px', zIndex: 1000 }}>
+      <div id="utility-container" style={{ position: 'fixed', bottom: '20px', left: '20px', display: 'flex', gap: '12px', zIndex: 1000 }}>
         {/* Floating Report Bug Hover Form */}
         <Popover 
           trigger="hover" 
@@ -187,6 +187,7 @@ function App() {
       {/* Floating Support Button */}
       <Popover content={supportContent} title={null} trigger="click" placement="topRight" overlayInnerStyle={{ border: '3px solid #111', borderRadius: '16px', boxShadow: '6px 6px 0 #111', padding: '10px' }}>
         <button 
+          id="support-btn"
           style={{
             position: 'fixed',
             bottom: '20px',

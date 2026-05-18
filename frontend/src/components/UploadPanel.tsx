@@ -54,7 +54,7 @@ const UploadPanel: React.FC = () => {
 
   // Workspace integration state
   const [inWorkspace, setInWorkspace] = useState(false);
-  const [workspaceData, setWorkspaceData] = useState<{ html: string; filePath: string; filename: string } | null>(null);
+  const [workspaceData, setWorkspaceData] = useState<{ html: string; filePath: string; filename: string; options?: any } | null>(null);
 
   useEffect(() => {
     if (!file) {
@@ -115,7 +115,8 @@ const UploadPanel: React.FC = () => {
         setWorkspaceData({
           html: response.data.html,
           filePath: response.data.file_path,
-          filename: response.data.filename
+          filename: response.data.filename,
+          options: response.data.options
         });
         setInWorkspace(true);
         message.success('Document formatted! Entering AI Review Workspace...');
@@ -160,6 +161,7 @@ const UploadPanel: React.FC = () => {
             initialHtml={workspaceData.html}
             filePath={workspaceData.filePath}
             filename={workspaceData.filename}
+            options={workspaceData.options}
             onBack={() => setInWorkspace(false)}
           />
         ) : (

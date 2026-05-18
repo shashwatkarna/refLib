@@ -93,10 +93,7 @@ async def format_paper(
             parsed_data = parse_text(text)
             success, msg = format_document(parsed_data, output_path, options)
 
-        if not success:
-            raise HTTPException(status_code=500, detail=f"Formatting failed: {msg}")
-
-        # Instead of returning FileResponse immediately, Generate HTML preview for Workspace
+        # Generate HTML preview for Workspace
         html_preview = ""
         try:
             with open(output_path, "rb") as docx_file:
@@ -109,7 +106,8 @@ async def format_paper(
             "success": True,
             "file_path": output_path, # Return path for subsequent edits
             "html": html_preview,
-            "filename": output_filename
+            "filename": output_filename,
+            "options": options # Return options for frontend preview rendering
         }
 
     except HTTPException as he:
@@ -153,4 +151,9 @@ async def download_paper(file_path: str, filename: str):
         filename=filename,
         media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
 

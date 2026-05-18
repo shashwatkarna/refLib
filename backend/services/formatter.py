@@ -259,93 +259,47 @@ def in_place_format_docx(input_path, output_path, options=None):
     if hasattr(style.paragraph_format, 'line_spacing'):
         style.paragraph_format.line_spacing = 1.0
 
-    # Locate abstract or start of body
-    abstract_idx = -1
+    # Smarter Semantic Layout Analysis
+    title_found = False
+    
     for i, p in enumerate(doc.paragraphs):
-        text = p.text.strip().lower()
-        if text.startswith('abstract') or text == 'abstract' or text.startswith('abstract—'):
-            abstract_idx = i
-            break
+        text = p.text.strip()
+        if not text:
+            # Clean up empty paragraph spacing
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            continue
             
-    if abstract_idx == -1:
-        for i, p in enumerate(doc.paragraphs):
-            text = p.text.strip().lower()
-            if text.startswith('keywords') or text.startswith('index terms') or text.startswith('1. introduction') or text == 'introduction':
-                abstract_idx = i
-                break
-                
-    if abstract_idx == -1:
-        abstract_idx = 3 # fallback
-    if abstract_idx <= 0 or abstract_idx >= len(doc.paragraphs):
-        abstract_idx = 1
+        words = text.split()
+        num_words = len(words)
         
-    # Format Title and Authors
-    for i in range(abstract_idx):
-        p = doc.paragraphs[i]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        if i == 0:
+        # Check if it's already a heading style from the source document
+        is_heading_style = p.style.name.startswith('Heading') or p.style.name == 'Title'
+        
+        # Heuristic 1: Titles/Headings are usually short.
+        # Heuristic 2: Often predominantly bold or Title Cased.
+        text_is_title_case = text.istitle() and num_words > 1
+        runs_are_bold = sum(1 for r in p.runs if r.bold) > len(p.runs) / 2 if p.runs else False
+        
+        if not title_found and i < 5 and num_words < 20: # First few short lines are usually Title/Authors
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in p.runs:
                 run.font.name = h_font_name
                 run.font.size = Pt(h_font_size)
                 run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
-        else:
+            if num_words > 3: # Likely the main title
+                title_found = True
+        elif text.lower() in ['abstract', 'abstract—', 'abstract.']:
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             for run in p.runs:
-                run.font.name = c_font_name
-                run.font.size = Pt(c_font_size + 1)
-                run.font.color.rgb = RGBColor(*c_color_rgb)
-                
-    # Insert Section break at abstract_idx - 1
-    last_header_para = doc.paragraphs[abstract_idx - 1]
-    pPr = last_header_para._p.get_or_add_pPr()
-    sectPr = OxmlElement('w:sectPr')
-    
-    # Section 1 (Title) -> 1 column
-    type_el = OxmlElement('w:type')
-    type_el.set(qn('w:val'), 'continuous')
-    sectPr.append(type_el)
-    
-    cols = OxmlElement('w:cols')
-    cols.set(qn('w:num'), str(num_columns))
-    cols.set(qn('w:space'), '432')
-    sectPr.append(cols)
-    
-    # Section 1 Margins (0.6 inch = 864 twips)
-    pgMar = OxmlElement('w:pgMar')
-    pgMar.set(qn('w:top'), '864')
-    pgMar.set(qn('w:bottom'), '864')
-    pgMar.set(qn('w:left'), '864')
-    pgMar.set(qn('w:right'), '864')
-    sectPr.append(pgMar)
-    
-    pPr.append(sectPr)
-    
-    # Format document's main section (Section 2) -> 2 columns
-    doc.sections[-1].top_margin = Inches(0.6)
-    doc.sections[-1].bottom_margin = Inches(0.6)
-    doc.sections[-1].left_margin = Inches(0.6)
-    doc.sections[-1].right_margin = Inches(0.6)
-    
-    doc_sectPr = doc.sections[-1]._sectPr
-    doc_cols = doc_sectPr.xpath('./w:cols')
-    if not doc_cols:
-        doc_cols = OxmlElement('w:cols')
-        doc_sectPr.append(doc_cols)
-    else:
-        doc_cols = doc_cols[0]
-    doc_cols.set(qn('w:num'), str(num_columns))
-    doc_cols.set(qn('w:space'), '432')
-    
-    # Format the rest of the body (Abstract, Keywords, text)
-    for i in range(abstract_idx, len(doc.paragraphs)):
-        p = doc.paragraphs[i]
-        text = p.text.strip().lower()
-        if not text:
-            continue
-        
-        words = text.split()
-        # Headings heuristic
-        if len(words) < 12 and not text.endswith('.'):
+                run.font.name = h_font_name
+                run.font.size = Pt(int(h_font_size * 0.7))
+                run.font.color.rgb = RGBColor(*h_color_rgb)
+                run.bold = True
+                run.italic = True
+        elif is_heading_style or (num_words < 12 and not text.endswith('.') and (text_is_title_case or runs_are_bold)):
+            # It's a heading
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for run in p.runs:
                 run.font.name = h_font_name
@@ -353,21 +307,17 @@ def in_place_format_docx(input_path, output_path, options=None):
                 run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
         else:
-            # Regular paragraph
+            # It's a regular body paragraph
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.first_line_indent = Inches(0.15)
-            # If abstract, bold it
-            if i == abstract_idx:
-                for run in p.runs:
-                    run.bold = True
-                    run.italic = True
-                    
-    # Clean up spacing, center images, remove top margins
+            for run in p.runs:
+                # Clear existing formatting to enforce our layout
+                run.font.name = c_font_name
+                run.font.size = Pt(c_font_size)
+                run.font.color.rgb = RGBColor(*c_color_rgb)
+                
+    # Center paragraphs containing images
     for p in doc.paragraphs:
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(6)
-        
-        # Center paragraphs containing images
         if p._element.xpath('.//pic:pic') or p._element.xpath('.//w:drawing'):
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_before = Pt(12)
