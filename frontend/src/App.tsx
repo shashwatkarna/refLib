@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { Layout, ConfigProvider, Popover, Input } from 'antd';
 import Home from './pages/Home';
+import axios from 'axios';
+import { API_BASE_URL } from './config';
 
 const { Header, Content, Footer } = Layout;
 
@@ -71,17 +73,33 @@ function App() {
               />
               <button 
                 style={{ width: '100%', padding: '8px', background: '#ff4d4f', color: '#fff', fontWeight: '900', border: '2px solid #111', borderRadius: '8px', cursor: 'pointer', boxShadow: '2px 2px 0 #111', transition: 'all 0.1s' }} 
-                onClick={(e) => {
+                onClick={async (e) => {
                   const input = document.getElementById('bug-input') as HTMLTextAreaElement;
                   if (input && input.value.trim()) {
                     const btn = e.currentTarget;
-                    btn.innerText = 'Submitted \u2713';
-                    btn.style.background = '#52c41a';
-                    input.value = '';
-                    setTimeout(() => {
-                      btn.innerText = 'Submit';
-                      btn.style.background = '#ff4d4f';
-                    }, 2000);
+                    const originalText = btn.innerText;
+                    btn.disabled = true;
+                    btn.innerText = 'Submitting...';
+                    try {
+                      await axios.post(`${API_BASE_URL}/api/bug-report`, {
+                        description: input.value.trim()
+                      });
+                      btn.innerText = 'Submitted \u2713';
+                      btn.style.background = '#52c41a';
+                      input.value = '';
+                      setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = '#ff4d4f';
+                        btn.disabled = false;
+                      }, 2000);
+                    } catch (err) {
+                      btn.innerText = 'Failed';
+                      setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = '#ff4d4f';
+                        btn.disabled = false;
+                      }, 2000);
+                    }
                   }
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #111'; }}
@@ -137,17 +155,33 @@ function App() {
               />
               <button 
                 style={{ width: '100%', padding: '8px', background: '#1677ff', color: '#fff', fontWeight: '900', border: '2px solid #111', borderRadius: '8px', cursor: 'pointer', boxShadow: '2px 2px 0 #111', transition: 'all 0.1s' }} 
-                onClick={(e) => {
+                onClick={async (e) => {
                   const input = document.getElementById('feedback-input') as HTMLTextAreaElement;
                   if (input && input.value.trim()) {
                     const btn = e.currentTarget;
-                    btn.innerText = 'Sent \u2713';
-                    btn.style.background = '#52c41a';
-                    input.value = '';
-                    setTimeout(() => {
-                      btn.innerText = 'Send';
-                      btn.style.background = '#1677ff';
-                    }, 2000);
+                    const originalText = btn.innerText;
+                    btn.disabled = true;
+                    btn.innerText = 'Sending...';
+                    try {
+                      await axios.post(`${API_BASE_URL}/api/feedback`, {
+                        content: input.value.trim()
+                      });
+                      btn.innerText = 'Sent \u2713';
+                      btn.style.background = '#52c41a';
+                      input.value = '';
+                      setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = '#1677ff';
+                        btn.disabled = false;
+                      }, 2000);
+                    } catch (err) {
+                      btn.innerText = 'Failed';
+                      setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.background = '#1677ff';
+                        btn.disabled = false;
+                      }, 2000);
+                    }
                   }
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0 #111'; }}

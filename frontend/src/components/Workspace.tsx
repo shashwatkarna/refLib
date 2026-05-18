@@ -4,8 +4,9 @@ import { DownloadOutlined, LeftOutlined, BarChartOutlined, BulbOutlined, SafetyC
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import SelectionMenu from './SelectionMenu';
+import { API_BASE_URL } from '../config';
 
-const { Content, Header, Sider } = Layout;
+const { Content, Sider } = Layout;
 const { Title, Text } = Typography;
 
 interface WorkspaceProps {
@@ -62,7 +63,7 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
       formData.append('original_text', selection.text);
       formData.append('instruction', instruction);
 
-      const response = await axios.post('http://localhost:8000/api/refine', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/refine`, formData);
       
       if (response.data.success) {
         setHtml(response.data.html);
@@ -78,7 +79,7 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
 
   const handleDownload = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/download?file_path=${filePath}&filename=${filename}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/download?file_path=${filePath}&filename=${filename}`, {
         responseType: 'blob'
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));

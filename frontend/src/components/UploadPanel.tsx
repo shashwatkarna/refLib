@@ -5,6 +5,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as mammoth from 'mammoth';
 import Workspace from './Workspace';
+import { API_BASE_URL } from '../config';
 
 const { Dragger } = Upload;
 const { Title, Text } = Typography;
@@ -109,7 +110,7 @@ const UploadPanel: React.FC = () => {
       const cColor = values.contentColor;
       formData.append('content_color', cColor ? (typeof cColor === 'string' ? cColor : cColor.toHexString()) : '#000000');
 
-      const response = await axios.post('http://localhost:8000/api/format', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/format`, formData);
 
       if (response.data.success) {
         setWorkspaceData({

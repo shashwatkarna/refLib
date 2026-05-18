@@ -1,9 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 import tempfile
 import os
 import shutil
+import datetime
+import json
+import urllib.request
 
 # Import the existing formatting logic
 from services.formatter import extract_text, parse_text, format_document, in_place_format_docx, refine_docx
@@ -151,6 +155,125 @@ async def download_paper(file_path: str, filename: str):
         filename=filename,
         media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
+
+class BugReportRequest(BaseModel):
+    description: str
+
+class FeedbackRequest(BaseModel):
+    content: str
+
+def send_to_discord(title: str, content: str):
+    webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not webhook_url:
+        print("Discord webhook URL not configured in environment variables.")
+        return
+        
+    try:
+        # Colors: Red (16731471 / #ff4d4f) for bugs, Blue (1472511 / #1677ff) for feedback
+        color = 16731471 if "Bug" in title else 1472511
+        
+        payload = {
+            "embeds": [{
+                "title": f"🚀 {title}",
+                "description": content,
+                "color": color,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "footer": {
+                    "text": "refLib AI LAB Alerts"
+                }
+            }]
+        }
+        
+        req_data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(
+            webhook_url,
+            data=req_data,
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'refLib-Backend'
+            }
+        )
+        
+        with urllib.request.urlopen(req) as response:
+            pass
+    except Exception as e:
+        print(f"Failed to send Discord webhook alert: {e}")
+
+@app.post("/api/bug-report")
+def save_bug_report(req: BugReportRequest, background_tasks: BackgroundTasks):
+    try:
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        os.makedirs(data_dir, exist_ok=True)
+        file_path = os.path.join(data_dir, "bug_reports.json")
+        
+        # Load existing
+        reports = []
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    reports = json.load(f)
+            except:
+                pass
+                
+        # Append new
+        new_report = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "description": req.description
+        }
+        reports.append(new_report)
+        
+        # Save locally as backup
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(reports, f, indent=4)
+            
+        # Asynchronously trigger Discord Webhook alert
+        background_tasks.add_task(
+            send_to_discord, 
+            "New Bug Report Submitted", 
+            f"**Description:**\n{req.description}"
+        )
+            
+        return {"success": True, "message": "Bug report saved successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/feedback")
+def save_feedback(req: FeedbackRequest, background_tasks: BackgroundTasks):
+    try:
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        os.makedirs(data_dir, exist_ok=True)
+        file_path = os.path.join(data_dir, "feedback.json")
+        
+        # Load existing
+        feedbacks = []
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    feedbacks = json.load(f)
+            except:
+                pass
+                
+        # Append new
+        new_feedback = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "content": req.content
+        }
+        feedbacks.append(new_feedback)
+        
+        # Save locally as backup
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(feedbacks, f, indent=4)
+            
+        # Asynchronously trigger Discord Webhook alert
+        background_tasks.add_task(
+            send_to_discord, 
+            "New Suggestion / Feedback Received", 
+            f"**Suggestion:**\n{req.content}"
+        )
+            
+        return {"success": True, "message": "Feedback saved successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
