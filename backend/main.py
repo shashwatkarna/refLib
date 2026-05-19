@@ -162,6 +162,27 @@ class BugReportRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     content: str
 
+class CitationsFormatRequest(BaseModel):
+    citations: list[str]
+    style: str
+
+@app.post("/api/citations/format")
+def format_citation_list(req: CitationsFormatRequest):
+    try:
+        from services.citation_engine import CitationParser, CitationFormatter
+        formatted = []
+        for idx, raw in enumerate(req.citations, 1):
+            parsed = CitationParser.parse_reference(raw)
+            formatted_str = CitationFormatter.format_reference(parsed, req.style, idx)
+            formatted.append({
+                "original": raw,
+                "parsed": parsed,
+                "formatted": formatted_str
+            })
+        return {"success": True, "results": formatted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 def send_to_discord(title: str, content: str):
     webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not webhook_url:

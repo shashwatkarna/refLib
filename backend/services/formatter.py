@@ -2,6 +2,7 @@ import os
 import re
 import PyPDF2
 from docx import Document
+from services.equation_formatter import EquationFormatter
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_SECTION
@@ -310,11 +311,16 @@ def in_place_format_docx(input_path, output_path, options=None):
             # It's a regular body paragraph
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.first_line_indent = Inches(0.15)
-            for run in p.runs:
-                # Clear existing formatting to enforce our layout
-                run.font.name = c_font_name
-                run.font.size = Pt(c_font_size)
-                run.font.color.rgb = RGBColor(*c_color_rgb)
+            
+            # Auto-format LaTeX formulas first
+            has_equations = EquationFormatter.process_paragraph_equations(p)
+            
+            if not has_equations:
+                for run in p.runs:
+                    # Clear existing formatting to enforce our layout
+                    run.font.name = c_font_name
+                    run.font.size = Pt(c_font_size)
+                    run.font.color.rgb = RGBColor(*c_color_rgb)
                 
     # Center paragraphs containing images
     for p in doc.paragraphs:

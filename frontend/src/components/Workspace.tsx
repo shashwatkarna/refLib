@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Card, Button, Typography, Layout, Space, message, Divider, Badge, Popover } from 'antd';
+import { Card, Button, Typography, Layout, Space, message, Divider, Badge, Popover, Input, Select } from 'antd';
 import { DownloadOutlined, LeftOutlined, BarChartOutlined, BulbOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -22,6 +22,12 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<{ text: string; rect: DOMRect; range?: Range } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Bibliography & Citation Auto-Formatter states
+  const [rawCitation, setRawCitation] = useState('');
+  const [citationStyle, setCitationStyle] = useState('APA');
+  const [formattedResult, setFormattedResult] = useState('');
+  const [formattingCitation, setFormattingCitation] = useState(false);
 
   const supportContent = (
     <div style={{ textAlign: 'center', padding: '10px' }}>
@@ -93,6 +99,28 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
       message.success('Final document downloaded!');
     } catch (error) {
       message.error('Failed to download document');
+    }
+  };
+
+  const handleFormatCitation = async () => {
+    if (!rawCitation.trim()) {
+      message.warning('Please paste a raw citation first!');
+      return;
+    }
+    setFormattingCitation(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/citations/format`, {
+        citations: [rawCitation],
+        style: citationStyle
+      });
+      if (response.data.success && response.data.results.length > 0) {
+        setFormattedResult(response.data.results[0].formatted);
+        message.success('Citation formatted successfully!');
+      }
+    } catch (error) {
+      message.error('Failed to format citation');
+    } finally {
+      setFormattingCitation(false);
     }
   };
 
@@ -240,7 +268,50 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
               </div>
             </Card>
 
-            <Title level={5} style={{ color: '#fff', marginBottom: '20px', marginTop: '40px' }}>
+            <Title level={5} style={{ color: '#fff', marginBottom: '15px', marginTop: '25px' }}>
+              📚 BIBLIOGRAPHY HELPER
+            </Title>
+            <Card size="small" className="citation-formatter-card" style={{ background: '#1a1a1a', border: '2px solid #333', marginBottom: '16px' }}>
+              <Input.TextArea 
+                placeholder="Paste raw, messy citation here..."
+                rows={2}
+                value={rawCitation}
+                onChange={(e) => setRawCitation(e.target.value)}
+                style={{ background: '#252525', color: '#fff', border: '1px solid #444', marginBottom: '8px' }}
+              />
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <Select
+                  value={citationStyle}
+                  onChange={(val) => setCitationStyle(val)}
+                  style={{ flex: 1 }}
+                  popupClassName="dark-select-dropdown"
+                  options={[
+                    { value: 'APA', label: 'APA 7th' },
+                    { value: 'IEEE', label: 'IEEE' },
+                    { value: 'MLA', label: 'MLA 9th' },
+                    { value: 'HARVARD', label: 'Harvard' },
+                    { value: 'CHICAGO', label: 'Chicago' },
+                  ]}
+                />
+                <Button 
+                  type="primary" 
+                  onClick={handleFormatCitation} 
+                  loading={formattingCitation}
+                  style={{ background: '#ffde03', color: '#000', border: 'none', fontWeight: 'bold' }}
+                >
+                  Format
+                </Button>
+              </div>
+              {formattedResult && (
+                <div style={{ background: '#111', padding: '8px', border: '1px solid #444', borderRadius: '4px', marginTop: '8px' }}>
+                  <Text copyable style={{ color: '#ffde03', fontSize: '0.75rem', display: 'block', wordBreak: 'break-all' }}>
+                    {formattedResult}
+                  </Text>
+                </div>
+              )}
+            </Card>
+
+            <Title level={5} style={{ color: '#fff', marginBottom: '20px', marginTop: '30px' }}>
               <BulbOutlined style={{ marginRight: '10px' }} /> AI SUGGESTIONS
             </Title>
             
@@ -346,6 +417,27 @@ const Workspace: React.FC<WorkspaceProps> = ({ initialHtml, filePath, filename, 
         }
         #support-btn {
           display: none !important;
+        }
+
+        /* Dark select overrides */
+        .dark-select-dropdown {
+          background-color: #1a1a1a !important;
+          border: 2px solid #333 !important;
+        }
+        .dark-select-dropdown .ant-select-item {
+          color: #ccc !important;
+        }
+        .dark-select-dropdown .ant-select-item-option-selected {
+          background-color: #333 !important;
+          color: #ffde03 !important;
+        }
+        .dark-select-dropdown .ant-select-item-option-active {
+          background-color: #222 !important;
+        }
+        .citation-formatter-card .ant-select-selector {
+          background-color: #252525 !important;
+          color: #fff !important;
+          border: 1px solid #444 !important;
         }
       `}</style>
     </motion.div>
