@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Card, Steps, Button, Form, Input, message, Typography, Row, Col, Select, Drawer } from 'antd';
+import { Card, Steps, Button, Form, Input, message, Row, Col, Select, Drawer } from 'antd';
 import { LeftOutlined, RightOutlined, PlusOutlined, DeleteOutlined, RocketOutlined, InboxOutlined, MenuOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 
-const { Title, Text } = Typography;
 const { Step } = Steps;
 
 interface RefAutoWizardProps {
@@ -108,7 +107,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       case 0:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>📄 Core Document Meta</Title>
+            <h5 style={{ color: '#fff', marginBottom: '20px', fontWeight: 800, fontSize: '1rem' }}>📄 Core Document Meta</h5>
             <Form.Item name="title" label={<span style={{ color: '#aaa' }}>Research Title</span>} rules={[{ required: true, message: 'Please enter paper title' }]}>
               <Input placeholder="Enter a short, specific research title..." style={{ background: '#222', color: '#fff', border: '1px solid #444', height: '45px' }} />
             </Form.Item>
@@ -137,7 +136,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       case 1:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>📋 Abstract & Keywords</Title>
+            <h5 style={{ color: '#fff', marginBottom: '20px', fontWeight: 800, fontSize: '1rem' }}>📋 Abstract & Keywords</h5>
             <Form.Item name="abstract" label={<span style={{ color: '#aaa' }}>Abstract (Brief Summary)</span>} rules={[{ required: true, message: 'Please enter paper abstract' }]}>
               <Input.TextArea rows={5} placeholder="A short summary stating the research purpose, methodology, key results, and major conclusions..." style={{ background: '#222', color: '#fff', border: '1px solid #444' }} />
             </Form.Item>
@@ -150,7 +149,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       case 2:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>✍️ Research Sections Content</Title>
+            <h5 style={{ color: '#fff', marginBottom: '20px', fontWeight: 800, fontSize: '1rem' }}>✍️ Research Sections Content</h5>
             <Form.Item name="introduction" label={<span style={{ color: '#aaa' }}>I. Introduction</span>} rules={[{ required: true, message: 'Introduction is required' }]}>
               <Input.TextArea rows={4} placeholder="Provide research background, outline the problem statement, and specify key research questions..." style={{ background: '#222', color: '#fff', border: '1px solid #444' }} />
             </Form.Item>
@@ -169,14 +168,14 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       case 3:
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            <Title level={5} style={{ color: '#fff', marginBottom: '20px' }}>📚 Bibliography & Layout</Title>
+            <h5 style={{ color: '#fff', marginBottom: '20px', fontWeight: 800, fontSize: '1rem' }}>📚 Bibliography & Layout</h5>
             <Form.Item name="references" label={<span style={{ color: '#aaa' }}>References (One citation per line)</span>} rules={[{ required: true, message: 'Please enter references' }]}>
               <Input.TextArea rows={5} placeholder="e.g. Karna, S. (2024). Quantum Cryptography. Journal of Computer Science, 12(4), pp. 45-56." style={{ background: '#222', color: '#fff', border: '1px solid #444' }} />
             </Form.Item>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="citationStyle" label={<span style={{ color: '#aaa' }}>Citation Format</span>}>
-                  <Select style={{ width: '100%' }}>
+                  <Select style={{ width: '100%' }} popupClassName="refauto-select-popup">
                     <Select.Option value="APA">APA 7th Edition</Select.Option>
                     <Select.Option value="IEEE">IEEE Style</Select.Option>
                     <Select.Option value="MLA">MLA 9th Edition</Select.Option>
@@ -187,7 +186,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
               </Col>
               <Col span={12}>
                 <Form.Item name="columns" label={<span style={{ color: '#aaa' }}>Layout Columns</span>}>
-                  <Select style={{ width: '100%' }}>
+                  <Select style={{ width: '100%' }} popupClassName="refauto-select-popup">
                     <Select.Option value="2">Two Columns (Recommended)</Select.Option>
                     <Select.Option value="1">Single Column</Select.Option>
                   </Select>
@@ -197,7 +196,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="headingFont" label={<span style={{ color: '#aaa' }}>Heading Font</span>}>
-                  <Select style={{ width: '100%' }}>
+                  <Select style={{ width: '100%' }} popupClassName="refauto-select-popup">
                     <Select.Option value="Times New Roman">Times New Roman</Select.Option>
                     <Select.Option value="Arial">Arial</Select.Option>
                     <Select.Option value="Garamond">Garamond</Select.Option>
@@ -206,7 +205,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
               </Col>
               <Col span={12}>
                 <Form.Item name="contentFont" label={<span style={{ color: '#aaa' }}>Body Font</span>}>
-                  <Select style={{ width: '100%' }}>
+                  <Select style={{ width: '100%' }} popupClassName="refauto-select-popup">
                     <Select.Option value="Times New Roman">Times New Roman</Select.Option>
                     <Select.Option value="Arial">Arial</Select.Option>
                     <Select.Option value="Garamond">Garamond</Select.Option>
@@ -231,6 +230,199 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
 
   return (
     <>
+      {/* Scoped CSS — forces visibility inside the dark wizard and its portals, overrides Ant Design globals */}
+      <style>{`
+        /* Headings inside the wizard card */
+        .refauto-wizard h4 {
+          color: #111111 !important;
+        }
+        .refauto-wizard h5 {
+          color: #ffffff !important;
+        }
+        /* Steps titles (rendered on white background) */
+        .refauto-wizard .ant-steps-item-title,
+        .refauto-wizard .ant-steps-item-title span {
+          color: #555555 !important;
+        }
+        .refauto-wizard .ant-steps-item-active .ant-steps-item-title,
+        .refauto-wizard .ant-steps-item-active .ant-steps-item-title span {
+          color: #111111 !important;
+          font-weight: 800 !important;
+        }
+        .refauto-wizard .ant-steps-item-wait .ant-steps-item-title,
+        .refauto-wizard .ant-steps-item-wait .ant-steps-item-title span {
+          color: #999999 !important;
+        }
+        .refauto-wizard .ant-steps-item-finish .ant-steps-item-title,
+        .refauto-wizard .ant-steps-item-finish .ant-steps-item-title span {
+          color: #2e7d32 !important;
+        }
+        /* Step icons and progress connectors */
+        .refauto-wizard .ant-steps-item-icon {
+          border-color: #555555 !important;
+          background-color: #ffffff !important;
+        }
+        .refauto-wizard .ant-steps-item-icon .ant-steps-icon {
+          color: #555555 !important;
+        }
+        /* Active step icon */
+        .refauto-wizard .ant-steps-item-active .ant-steps-item-icon {
+          border-color: #111111 !important;
+          background-color: #ffde03 !important;
+        }
+        .refauto-wizard .ant-steps-item-active .ant-steps-item-icon .ant-steps-icon {
+          color: #000000 !important;
+          font-weight: bold !important;
+        }
+        /* Finish step icon */
+        .refauto-wizard .ant-steps-item-finish .ant-steps-item-icon {
+          border-color: #2e7d32 !important;
+          background-color: #e8f5e9 !important;
+        }
+        .refauto-wizard .ant-steps-item-finish .ant-steps-item-icon .ant-steps-icon {
+          color: #2e7d32 !important;
+        }
+        /* Wait step icon */
+        .refauto-wizard .ant-steps-item-wait .ant-steps-item-icon {
+          border-color: #cccccc !important;
+          background-color: #f5f5f5 !important;
+        }
+        .refauto-wizard .ant-steps-item-wait .ant-steps-item-icon .ant-steps-icon {
+          color: #888888 !important;
+        }
+        /* Step tail connector lines */
+        .refauto-wizard .ant-steps-item-tail::after {
+          background-color: #dddddd !important;
+        }
+        /* Labels inside the wizard form */
+        .refauto-wizard label,
+        .refauto-wizard .ant-form-item-label > label {
+          color: #cccccc !important;
+          font-weight: 700 !important;
+        }
+        /* Input and Textarea values */
+        .refauto-wizard input,
+        .refauto-wizard textarea,
+        .refauto-wizard .ant-input,
+        .refauto-wizard .ant-input-textarea textarea {
+          color: #ffffff !important;
+          background: #222222 !important;
+          border: 2px solid #444444 !important;
+          border-radius: 8px !important;
+          box-shadow: none !important;
+        }
+        .refauto-wizard input:focus,
+        .refauto-wizard textarea:focus,
+        .refauto-wizard .ant-input:focus,
+        .refauto-wizard .ant-input-textarea textarea:focus {
+          border-color: #ffde03 !important;
+          background: #2a2a2a !important;
+          box-shadow: 0 0 0 2px rgba(255, 222, 3, 0.2) !important;
+        }
+        /* Input Placeholders */
+        .refauto-wizard input::placeholder,
+        .refauto-wizard textarea::placeholder,
+        .refauto-wizard .ant-input::placeholder,
+        .refauto-wizard .ant-input-textarea textarea::placeholder {
+          color: #888888 !important;
+          opacity: 1 !important;
+        }
+        /* Default buttons (Previous, Classic button in header) */
+        .refauto-wizard .ant-btn-default {
+          color: #ffffff !important;
+          background: #222222 !important;
+          border: 2px solid #444444 !important;
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+        .refauto-wizard .ant-btn-default:hover {
+          background: #333333 !important;
+          border-color: #666666 !important;
+          color: #ffffff !important;
+        }
+        .refauto-wizard .ant-btn-default:disabled,
+        .refauto-wizard .ant-btn-default[disabled] {
+          color: #555555 !important;
+          background: #151515 !important;
+          border-color: #2a2a2a !important;
+          cursor: not-allowed !important;
+        }
+        /* Select Components */
+        .refauto-wizard .ant-select-selector {
+          background: #222222 !important;
+          border: 2px solid #444444 !important;
+          color: #ffffff !important;
+          box-shadow: none !important;
+        }
+        .refauto-wizard .ant-select-selection-item {
+          color: #ffffff !important;
+        }
+        .refauto-wizard .ant-select-arrow {
+          color: #aaaaaa !important;
+        }
+        .refauto-wizard .ant-form-item-explain-error {
+          color: #ff6b6b !important;
+        }
+
+        /* Drawer Portal styling */
+        .refauto-drawer .ant-drawer-content {
+          background: #0d0d0d !important;
+        }
+        .refauto-drawer h4,
+        .refauto-drawer h5 {
+          color: #ffffff !important;
+        }
+        .refauto-drawer p,
+        .refauto-drawer span,
+        .refauto-drawer div {
+          color: #cccccc !important;
+        }
+        .refauto-drawer .ant-drawer-close {
+          color: #ffffff !important;
+        }
+        .refauto-drawer-card {
+          background: #141414 !important;
+          border: 2px solid #333333 !important;
+        }
+        .refauto-drawer-card h5 {
+          color: #ffffff !important;
+        }
+        .refauto-drawer-card p {
+          color: #888888 !important;
+        }
+        .refauto-drawer-legend {
+          background: #111111 !important;
+          border: 1px solid #222222 !important;
+        }
+        .refauto-drawer-legend p {
+          color: #555555 !important;
+        }
+        .refauto-drawer-legend span {
+          color: #cccccc !important;
+        }
+
+        /* Select Dropdown Portal styling */
+        .refauto-select-popup {
+          background-color: #1a1a1a !important;
+          border: 2px solid #333333 !important;
+          padding: 4px !important;
+        }
+        .refauto-select-popup .ant-select-item {
+          color: #cccccc !important;
+          border-radius: 6px !important;
+          transition: all 0.15s ease !important;
+        }
+        .refauto-select-popup .ant-select-item-option-selected {
+          background-color: #ffde03 !important;
+          color: #000000 !important;
+          font-weight: bold !important;
+        }
+        .refauto-select-popup .ant-select-item-option-active {
+          background-color: #333333 !important;
+          color: #ffffff !important;
+        }
+      `}</style>
+
       {/* Side Drawer */}
       <Drawer
         title={null}
@@ -238,6 +430,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={300}
+        rootClassName="refauto-drawer"
         styles={{
           body: { background: '#0d0d0d', padding: '28px 24px' },
           header: { display: 'none' },
@@ -246,20 +439,20 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       >
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <Title level={4} style={{ color: '#fff', margin: 0, fontSize: '1.1rem' }}>📁 Classic Upload</Title>
+            <h4 style={{ color: '#fff', margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>📁 Classic Upload</h4>
             <Button type="text" onClick={() => setDrawerOpen(false)} style={{ color: '#555', fontWeight: 'bold' }}>✕</Button>
           </div>
-          <Text style={{ color: '#555', fontSize: '0.8rem' }}>Already have a draft? Switch to the file uploader.</Text>
+          <p style={{ color: '#666', fontSize: '0.8rem', margin: 0 }}>Already have a draft? Switch to the file uploader.</p>
         </div>
 
         <div style={{ height: '1px', background: '#222', marginBottom: '24px' }} />
 
-        <div style={{ background: '#141414', border: '2px solid #333', borderRadius: '16px', padding: '24px', marginBottom: '20px', textAlign: 'center' }}>
+        <div className="refauto-drawer-card" style={{ background: '#141414', border: '2px solid #333', borderRadius: '16px', padding: '24px', marginBottom: '20px', textAlign: 'center' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📄</div>
-          <Title level={5} style={{ color: '#fff', margin: '0 0 8px 0' }}>Have a .docx or PDF?</Title>
-          <Text style={{ color: '#888', fontSize: '0.82rem', display: 'block', marginBottom: '20px', lineHeight: '1.5' }}>
+          <h5 style={{ color: '#fff', margin: '0 0 8px 0', fontWeight: 800, fontSize: '0.95rem' }}>Have a .docx or PDF?</h5>
+          <p style={{ color: '#888', fontSize: '0.82rem', display: 'block', marginBottom: '20px', lineHeight: '1.5', margin: '0 0 20px 0' }}>
             Upload an existing draft and let refLib auto-format it to IEEE, APA, or MLA standards.
-          </Text>
+          </p>
           <Button
             type="primary"
             block
@@ -272,8 +465,8 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
           </Button>
         </div>
 
-        <div style={{ background: '#111', border: '1px solid #222', borderRadius: '12px', padding: '16px' }}>
-          <Text style={{ color: '#444', fontSize: '0.72rem', display: 'block', marginBottom: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Which should I use?</Text>
+        <div className="refauto-drawer-legend" style={{ background: '#111', border: '1px solid #222', borderRadius: '12px', padding: '16px' }}>
+          <p style={{ color: '#555', fontSize: '0.72rem', display: 'block', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Which should I use?</p>
           {[
             { icon: '🚀', label: 'RefAuto', desc: 'Start from scratch with guided steps' },
             { icon: '📁', label: 'Classic', desc: 'Already have a draft ready to upload' },
@@ -281,8 +474,8 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
             <div key={item.label} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '10px' }}>
               <span style={{ fontSize: '1rem', flexShrink: 0 }}>{item.icon}</span>
               <div>
-                <Text style={{ color: '#ccc', fontSize: '0.8rem', fontWeight: '700', display: 'block' }}>{item.label}</Text>
-                <Text style={{ color: '#555', fontSize: '0.74rem' }}>{item.desc}</Text>
+                <span style={{ color: '#ccc', fontSize: '0.8rem', fontWeight: 700, display: 'block' }}>{item.label}</span>
+                <span style={{ color: '#555', fontSize: '0.74rem' }}>{item.desc}</span>
               </div>
             </div>
           ))}
@@ -290,11 +483,12 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
       </Drawer>
 
       {/* Main Wizard Card */}
+      <div className="refauto-wizard">
       <Card className="custom-card" style={{ maxWidth: '800px', margin: '0 auto', border: '3px solid #333' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <Title level={4} style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 900, fontSize: '1.1rem' }}>
             <RocketOutlined style={{ color: '#ffde03' }} /> RefAuto Step-by-Step Creator
-          </Title>
+          </h4>
           <Button
             icon={<MenuOutlined />}
             onClick={() => setDrawerOpen(true)}
@@ -306,7 +500,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
 
         <Steps current={currentStep} size="small" style={{ marginBottom: '32px' }}>
           {stepsList.map(item => (
-            <Step key={item.title} title={<span style={{ color: '#fff', fontSize: '0.8rem' }}>{item.title}</span>} />
+            <Step key={item.title} title={<span style={{ fontSize: '0.8rem' }}>{item.title}</span>} />
           ))}
         </Steps>
 
@@ -337,6 +531,7 @@ const RefAutoWizard: React.FC<RefAutoWizardProps> = ({ onBack, onSuccess }) => {
           </div>
         </Form>
       </Card>
+      </div>
     </>
   );
 };
