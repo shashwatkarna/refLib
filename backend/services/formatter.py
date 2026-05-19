@@ -230,6 +230,33 @@ def format_document(parsed_data, output_path, options=None):
     except Exception as e:
         return False, str(e)
 
+def validate_academic_paper(text):
+    """
+    Validates if the text content matches a standard research paper.
+    Checks for the presence of Abstract, Introduction/Methodology, and References.
+    """
+    lower_text = text.lower()
+    
+    # 1. Check for abstract
+    has_abstract = "abstract" in lower_text
+    
+    # 2. Check for references
+    has_references = any(ref_kw in lower_text for ref_kw in ["references", "works cited", "bibliography"])
+    
+    # 3. Check for typical academic structural headers
+    has_introduction = "introduction" in lower_text
+    
+    if not has_abstract:
+        return False, "This document does not contain an 'Abstract' section. A valid academic research paper must start with an Abstract summarizing the study's purpose and findings."
+        
+    if not has_references:
+        return False, "This document does not contain a 'References' or 'Bibliography' section. Legitimate academic papers must cite sources at the end."
+        
+    if not has_introduction:
+        return False, "This document does not contain an 'Introduction' section. Academic research papers must have a clear structural introduction."
+        
+    return True, ""
+
 def in_place_format_docx(input_path, output_path, options=None):
     """Format docx in place to retain tables, images, and inline formatting"""
     if options is None:
@@ -260,56 +287,165 @@ def in_place_format_docx(input_path, output_path, options=None):
     if hasattr(style.paragraph_format, 'line_spacing'):
         style.paragraph_format.line_spacing = 1.0
 
-    # Smarter Semantic Layout Analysis
-    title_found = False
+    # 1. Identify where body starts (e.g. Introduction or after keywords)
+    body_start_idx = None
+    ref_start_idx = None
     
     for i, p in enumerate(doc.paragraphs):
         text = p.text.strip()
+        text_lower = text.lower()
         if not text:
-            # Clean up empty paragraph spacing
+            continue
+            
+        # Detect where body starts
+        if body_start_idx is None:
+            if text_lower.startswith("introduction") or text_lower.startswith("i. introduction") or re.match(r'^i\.\s+', text_lower):
+                body_start_idx = i
+                
+        # Detect where references start
+        if text_lower in ['references', 'works cited', 'bibliography'] or text_lower.startswith('references') or text_lower.startswith('bibliography'):
+            ref_start_idx = i
+
+    # Fallback for body start
+    if body_start_idx is None:
+        for i, p in enumerate(doc.paragraphs):
+            text_lower = p.text.strip().lower()
+            if "keyword" in text_lower or "index terms" in text_lower:
+                body_start_idx = i + 1
+                break
+        if body_start_idx is None:
+            body_start_idx = min(5, len(doc.paragraphs) - 1)
+
+    # 2. Inject Continuous Section break right before body starts
+    if body_start_idx is not None and body_start_idx > 0:
+        prev_p = doc.paragraphs[body_start_idx - 1]
+        pPr = prev_p._element.get_or_add_pPr()
+        sectPr = pPr.xpath('w:sectPr')
+        if not sectPr:
+            sectPr_el = OxmlElement('w:sectPr')
+            type_el = OxmlElement('w:type')
+            type_el.set(qn('w:val'), 'continuous')
+            sectPr_el.append(type_el)
+            pPr.append(sectPr_el)
+
+    # 3. Configure column count and margins on all sections
+    # Refresh doc reference to reload newly injected sections
+    try:
+        doc.save(output_path)
+        doc = Document(output_path)
+    except:
+        pass
+    
+    for idx, sec in enumerate(doc.sections):
+        sec.top_margin = Inches(0.6)
+        sec.bottom_margin = Inches(0.6)
+        sec.left_margin = Inches(0.6)
+        sec.right_margin = Inches(0.6)
+        
+        if idx == 0:
+            # Title & Abstract section spans full width (1 column)
+            set_number_of_columns(sec, 1, 0)
+        else:
+            # Body section is 2 columns (or user options)
+            set_number_of_columns(sec, num_columns, 432) # 0.3 in column spacing
+
+    # 4. Standardize headings and body paragraphs formatting
+    title_found = False
+    in_references = False
+    
+    heading_map = {
+        'introduction': 'I. INTRODUCTION',
+        'related work': 'II. RELATED WORK',
+        'literature review': 'II. LITERATURE REVIEW',
+        'methodology': 'III. METHODOLOGY',
+        'methods': 'III. METHODOLOGY',
+        'results': 'IV. RESULTS',
+        'discussion': 'V. DISCUSSION',
+        'conclusion': 'VI. CONCLUSION',
+        'references': 'REFERENCES'
+    }
+
+    for i, p in enumerate(doc.paragraphs):
+        text = p.text.strip()
+        if not text:
             p.paragraph_format.space_before = Pt(0)
             p.paragraph_format.space_after = Pt(0)
             continue
             
+        text_lower = text.lower()
         words = text.split()
         num_words = len(words)
         
-        # Check if it's already a heading style from the source document
+        # Heading styles or patterns
         is_heading_style = p.style.name.startswith('Heading') or p.style.name == 'Title'
-        
-        # Heuristic 1: Titles/Headings are usually short.
-        # Heuristic 2: Often predominantly bold or Title Cased.
         text_is_title_case = text.istitle() and num_words > 1
         runs_are_bold = sum(1 for r in p.runs if r.bold) > len(p.runs) / 2 if p.runs else False
         
-        if not title_found and i < 5 and num_words < 20: # First few short lines are usually Title/Authors
+        # Check if we transitioned to references
+        if ref_start_idx is not None and i >= ref_start_idx:
+            in_references = True
+
+        # Heading detection and Roman numeral formatting
+        matched_heading_key = None
+        for key in heading_map.keys():
+            if text_lower == key or text_lower.endswith(" " + key) or text_lower == heading_map[key].lower():
+                matched_heading_key = key
+                break
+                
+        if not title_found and i < 4 and num_words < 20:
+            # Title centering and formatting
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(12)
             for run in p.runs:
                 run.font.name = h_font_name
                 run.font.size = Pt(h_font_size)
                 run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
-            if num_words > 3: # Likely the main title
+            if num_words > 3:
                 title_found = True
-        elif text.lower() in ['abstract', 'abstract—', 'abstract.']:
+        elif text_lower.startswith('abstract') or text_lower == 'abstract':
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(8)
+            # IEEE style abstract format
             for run in p.runs:
                 run.font.name = h_font_name
-                run.font.size = Pt(int(h_font_size * 0.7))
-                run.font.color.rgb = RGBColor(*h_color_rgb)
+                run.font.size = Pt(c_font_size)
+                run.font.color.rgb = RGBColor(*c_color_rgb)
                 run.bold = True
                 run.italic = True
-        elif is_heading_style or (num_words < 12 and not text.endswith('.') and (text_is_title_case or runs_are_bold)):
-            # It's a heading
+        elif matched_heading_key is not None or is_heading_style or (num_words < 12 and not text.endswith('.') and (text_is_title_case or runs_are_bold)):
+            # Standardized Heading
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(6)
+            
+            heading_text = heading_map[matched_heading_key] if matched_heading_key else text.upper()
+            
+            # Reset text with proper Roman numerals
+            p.text = heading_text
             for run in p.runs:
                 run.font.name = h_font_name
-                run.font.size = Pt(int(h_font_size * 0.6))
+                run.font.size = Pt(int(h_font_size * 0.55))
                 run.font.color.rgb = RGBColor(*h_color_rgb)
                 run.bold = True
-        else:
-            # It's a regular body paragraph
+        elif in_references:
+            # References format: Justified, hanging indent
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.left_indent = Inches(0.2)
+            p.paragraph_format.first_line_indent = Inches(-0.2)
+            for run in p.runs:
+                run.font.name = c_font_name
+                run.font.size = Pt(c_font_size)
+                run.font.color.rgb = RGBColor(*c_color_rgb)
+        else:
+            # Regular body paragraph
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(4)
             p.paragraph_format.first_line_indent = Inches(0.15)
             
             # Auto-format LaTeX formulas first
@@ -317,11 +453,10 @@ def in_place_format_docx(input_path, output_path, options=None):
             
             if not has_equations:
                 for run in p.runs:
-                    # Clear existing formatting to enforce our layout
                     run.font.name = c_font_name
                     run.font.size = Pt(c_font_size)
                     run.font.color.rgb = RGBColor(*c_color_rgb)
-                
+
     # Center paragraphs containing images
     for p in doc.paragraphs:
         if p._element.xpath('.//pic:pic') or p._element.xpath('.//w:drawing'):
@@ -373,7 +508,7 @@ def in_place_format_docx(input_path, output_path, options=None):
                     p.paragraph_format.page_break_before = False
             
     # Autofit inline images to ensure they don't break columns
-    MAX_WIDTH = Inches(3.4)
+    MAX_WIDTH = Inches(3.25)
     for shape in doc.inline_shapes:
         if shape.width > MAX_WIDTH:
             ratio = MAX_WIDTH / shape.width

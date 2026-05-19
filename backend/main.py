@@ -10,7 +10,7 @@ import json
 import urllib.request
 
 # Import the existing formatting logic
-from services.formatter import extract_text, parse_text, format_document, in_place_format_docx, refine_docx
+from services.formatter import extract_text, parse_text, format_document, in_place_format_docx, refine_docx, validate_academic_paper
 import mammoth # For generating live preview HTML on backend, refine_docx
 
 from fastapi.exceptions import RequestValidationError
@@ -88,13 +88,18 @@ async def format_paper(
             "content_color": content_color
         }
 
+        # Extract text first to validate academic content
+        document_text = extract_text(input_path)
+        is_valid, validation_msg = validate_academic_paper(document_text)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=validation_msg)
+
         if input_path.lower().endswith('.docx'):
             # The original logic formatting in place
             success, msg = in_place_format_docx(input_path, output_path, options)
         else:
             # For PDF, extract text and format
-            text = extract_text(input_path)
-            parsed_data = parse_text(text)
+            parsed_data = parse_text(document_text)
             success, msg = format_document(parsed_data, output_path, options)
 
         # Generate HTML preview for Workspace
@@ -117,6 +122,95 @@ async def format_paper(
     except HTTPException as he:
         cleanup_file(temp_dir)
         raise he
+class RefAutoAuthor(BaseModel):
+    name: str
+    affiliation: str
+
+class RefAutoRequest(BaseModel):
+    title: str
+    authors: list[RefAutoAuthor]
+    abstract: str
+    keywords: str
+    introduction: str
+    methodology: str
+    results: str
+    conclusion: str
+    references: list[str]
+    citation_style: str = "APA"
+    columns: int = 2
+    heading_font: str = "Times New Roman"
+    heading_size: int = 20
+    heading_color: str = "#000000"
+    content_font: str = "Times New Roman"
+    content_size: int = 10
+    content_color: str = "#000000"
+
+@app.post("/api/refauto/generate")
+async def generate_refauto_paper(req: RefAutoRequest):
+    temp_dir = tempfile.mkdtemp()
+    output_filename = f"RefAuto_Paper_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+    output_path = os.path.join(temp_dir, output_filename)
+
+    try:
+        authors_list = []
+        for a in req.authors:
+            if a.name.strip():
+                authors_list.append(f"{a.name.strip()}\n{a.affiliation.strip()}")
+
+        body_elements = []
+        if req.introduction.strip():
+            body_elements.extend(["I. INTRODUCTION", req.introduction.strip()])
+        if req.methodology.strip():
+            body_elements.extend(["II. METHODOLOGY", req.methodology.strip()])
+        if req.results.strip():
+            body_elements.extend(["III. RESULTS & DISCUSSION", req.results.strip()])
+        if req.conclusion.strip():
+            body_elements.extend(["IV. CONCLUSION", req.conclusion.strip()])
+
+        parsed_data = {
+            'title': req.title.strip(),
+            'authors': authors_list,
+            'university': "",
+            'abstract': req.abstract.strip(),
+            'keywords': req.keywords.strip(),
+            'body': body_elements,
+            'references': [r.strip() for r in req.references if r.strip()]
+        }
+
+        options = {
+            "citation_style": req.citation_style,
+            "columns": req.columns,
+            "heading_font": req.heading_font,
+            "heading_size": req.heading_size,
+            "heading_color": req.heading_color,
+            "content_font": req.content_font,
+            "content_size": req.content_size,
+            "content_color": req.content_color
+        }
+
+        success, msg = format_document(parsed_data, output_path, options)
+        if not success:
+            raise HTTPException(status_code=500, detail=f"Generation failed: {msg}")
+
+        # Also format the compiled docx using our premium continuous double-column formatter
+        success_ref, msg_ref = in_place_format_docx(output_path, output_path, options)
+
+        html_preview = ""
+        try:
+            with open(output_path, "rb") as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html_preview = result.value
+        except Exception as e:
+            html_preview = f"<p>Preview error: {str(e)}</p>"
+
+        return {
+            "success": True,
+            "file_path": output_path,
+            "html": html_preview,
+            "filename": output_filename,
+            "options": options
+        }
+
     except Exception as e:
         cleanup_file(temp_dir)
         raise HTTPException(status_code=500, detail=str(e))

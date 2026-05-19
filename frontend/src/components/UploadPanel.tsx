@@ -5,6 +5,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as mammoth from 'mammoth';
 import Workspace from './Workspace';
+import RefAutoWizard from './RefAutoWizard';
 import { API_BASE_URL } from '../config';
 
 const { Dragger } = Upload;
@@ -45,7 +46,12 @@ const layoutHelpContent = (
   </div>
 );
 
-const UploadPanel: React.FC = () => {
+interface UploadPanelProps {
+  openWizard?: boolean;
+  onWizardHandled?: () => void;
+}
+
+const UploadPanel: React.FC<UploadPanelProps> = ({ openWizard, onWizardHandled }) => {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
@@ -55,7 +61,16 @@ const UploadPanel: React.FC = () => {
 
   // Workspace integration state
   const [inWorkspace, setInWorkspace] = useState(false);
+  const [inWizard, setInWizard] = useState(false);
   const [workspaceData, setWorkspaceData] = useState<{ html: string; filePath: string; filename: string; options?: any } | null>(null);
+
+  // Allow parent to open wizard via prop
+  React.useEffect(() => {
+    if (openWizard) {
+      setInWizard(true);
+      onWizardHandled?.();
+    }
+  }, [openWizard]);
 
   useEffect(() => {
     if (!file) {
@@ -165,9 +180,18 @@ const UploadPanel: React.FC = () => {
             options={workspaceData.options}
             onBack={() => setInWorkspace(false)}
           />
+        ) : inWizard ? (
+          <RefAutoWizard
+            key="wizard"
+            onBack={() => setInWizard(false)}
+            onSuccess={(data) => {
+              setWorkspaceData(data);
+              setInWorkspace(true);
+              setInWizard(false);
+            }}
+          />
         ) : (
           <Card key="upload-panel" className="custom-card" bordered={false}>
-            {/* Same as before... content below */}
             <Title level={4} style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <SettingOutlined /> Configure & Format
             </Title>

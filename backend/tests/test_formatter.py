@@ -131,5 +131,37 @@ class TestEquationFormatter(unittest.TestCase):
         self.assertIn("β", xml)
         self.assertIn("γ", xml)
 
+from services.formatter import validate_academic_paper, in_place_format_docx
+from docx import Document
+
+class TestAcademicValidationAndLayout(unittest.TestCase):
+    
+    def test_validate_academic_paper_passing(self):
+        paper_text = """
+        Deep Learning for Sequence Classification
+        Abstract: Deep neural networks have revolutionized sequence classification.
+        Introduction: Sequence modeling is a critical field...
+        References:
+        [1] Y. Bengio, "Deep Learning", MIT Press, 2016.
+        """
+        is_valid, msg = validate_academic_paper(paper_text)
+        self.assertTrue(is_valid)
+        self.assertEqual(msg, "")
+        
+    def test_validate_academic_paper_failing_resume(self):
+        resume_text = """
+        John Doe
+        Email: john@example.com | Phone: 123-456-7890
+        Professional Experience:
+        - Lead Software Engineer at Google (2020 - Present)
+        - Developed high-performance React frontends and scalable Node backends.
+        Skills: Python, TypeScript, React, Docker, Kubernetes.
+        Education:
+        B.S. in Computer Science from Stanford University.
+        """
+        is_valid, msg = validate_academic_paper(resume_text)
+        self.assertFalse(is_valid)
+        self.assertIn("Abstract", msg)
+
 if __name__ == '__main__':
     unittest.main()
