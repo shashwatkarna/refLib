@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { notification } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import Hero from '../components/Hero';
 import UploadPanel from '../components/UploadPanel';
@@ -6,6 +7,56 @@ import UploadPanel from '../components/UploadPanel';
 const Home: React.FC = () => {
   const [triggerWizard, setTriggerWizard] = useState(false);
   const [tabHovered, setTabHovered] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      notification.open({
+        message: (
+          <span style={{ fontWeight: '900', fontSize: '0.95rem', color: '#111' }}>
+            🚀 Try RefAuto — it's faster!
+          </span>
+        ),
+        description: (
+          <span style={{ color: '#444', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            Don't have a draft yet? Build your research paper <strong>step-by-step</strong> in seconds — no file needed.
+          </span>
+        ),
+        placement: 'bottomLeft',
+        duration: 6,
+        style: {
+          background: '#ffde03',
+          border: '3px solid #111',
+          borderRadius: '14px',
+          boxShadow: '5px 5px 0 #111',
+          padding: '16px 20px',
+        },
+        btn: (
+          <button
+            onClick={() => {
+              notification.destroy('refauto-tip');
+              setTriggerWizard(true);
+            }}
+            style={{
+              background: '#111',
+              color: '#ffde03',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontWeight: '900',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              fontFamily: "'Nunito', sans-serif",
+            }}
+          >
+            Open RefAuto →
+          </button>
+        ),
+        key: 'refauto-tip',
+        closeIcon: <span style={{ color: '#111', fontWeight: '900', fontSize: '1rem' }}>✕</span>,
+      });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <>
